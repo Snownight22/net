@@ -4,15 +4,15 @@
 
 int g_loop = 1;
 
-void receive_data(void *handler, void *data, int length)
+void receive_data(const void *handler, const void *data, const int length)
 {
     printf("hello, received!\n");
     g_loop = 0;
 }
 
-void server_receive_data(void *handler, void *data, int length)
+void server_receive_data(const void *handler, const void *data, const int length)
 {
-
+    printf("client say:%s\n", data);
 }
 
 int main(int argc, char *argv[])
@@ -21,17 +21,19 @@ int main(int argc, char *argv[])
     char *domain = "192.168.1.186";
     unsigned short port = 6666;
     stClientHandler *handler;
-    char *buff = "hello, world";
     int ret;
+    char buff[128] = {0};
 
     handler = (stClientHandler *)tcp_client_init(domain, port, receive_data);
 
     while (g_loop)
     {
+        fputs("client say: ", stdout);
+        fgets(buff, 127, stdin);
         tcp_client_send(handler, buff, strlen(buff));
         if (0 == ret)
             printf("send %s\n", buff);
-        sleep(10);
+        //sleep(10);
     }
 
     tcp_client_destroy(handler);
