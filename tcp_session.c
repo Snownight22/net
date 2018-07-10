@@ -74,7 +74,7 @@ int tcp_client_send(void *tcpHandler, void *buff, int length)
     //LOG_INFO("client send over ret:%d\n", ret);
     if (0 > ret)
     {
-        handler->isconnected = TCP_SESSION_NOT_CONNECTED;
+        //handler->isconnected = TCP_SESSION_NOT_CONNECTED;
         return TCP_SESSION_ERR;
     }
 
@@ -125,7 +125,8 @@ void* tcp_client_process(void*arg)
             ret = recv(handler->ssockfd, buff, 1024, 0);
             if (0 == ret)
             {
-                handler->isconnected == 0;
+                LOG_INFO("receive 0, server is gone\n");
+                handler->isconnected = TCP_SESSION_NOT_CONNECTED;
                 continue;
             }
             else if (0 < ret)
