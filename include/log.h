@@ -1,5 +1,6 @@
 #ifndef _LOG_H_
 #define _LOG_H_
+#include <string.h>
 
 typedef enum E_LOG_LEVEL
 {
@@ -14,23 +15,25 @@ typedef enum E_LOG_LEVEL
 #define LOG_ERR_OK    (0)
 #define LOG_ERR_FAIL    (-1)
 
+#define filename(x) strrchr(x, '/')?strrchr(x, '/')+1:x
+
 void log_core_printf(eLogLevel level, const char* format, ...);
 
 /*各级别日志对外宏*/
 #define LOG_DEBUG(fmt, ...) \
-    log_core_printf(LOG_DEBUG, "%s:%s(%d):"fmt, __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__);
+    log_core_printf(LOG_DEBUG, "%s:%s(%d):"fmt, filename(__FILE__), __FUNCTION__, __LINE__, ##__VA_ARGS__);
 
 #define LOG_INFO(fmt, ...) \
-    log_core_printf(LOG_INFO, "%s:%s(%d):"fmt, __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__);
+    log_core_printf(LOG_INFO, "%s:%s(%d):"fmt, filename(__FILE__), __FUNCTION__, __LINE__, ##__VA_ARGS__);
 
 #define LOG_WARNING(fmt, ...) \
-    log_core_printf(LOG_WARNING, "%s:%s(%d):"fmt, __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__);
+    log_core_printf(LOG_WARNING, "%s:%s(%d):"fmt, filename(__FILE__), __FUNCTION__, __LINE__, ##__VA_ARGS__);
 
 #define LOG_ERROR(fmt, ...) \
-    log_core_printf(LOG_ERROR, "%s:%s(%d):"fmt, __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__);
+    log_core_printf(LOG_ERROR, "%s:%s(%d):"fmt, filename(__FILE__), __FUNCTION__, __LINE__, ##__VA_ARGS__);
 
 #define LOG_CRITICAL(fmt, ...) \
-    log_core_printf(LOG_CRITICAL, "%s:%s(%d):"fmt, __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__);
+    log_core_printf(LOG_CRITICAL, "%s:%s(%d):"fmt, filename(__FILE__), __FUNCTION__, __LINE__, ##__VA_ARGS__);
 
 /*统一对外接口*/
 void log_init();

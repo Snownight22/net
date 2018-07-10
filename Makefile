@@ -3,7 +3,8 @@ DEBUG = -g
 INC = -I./include/ 
 LIBS = -lpthread -llog
 LIBDIR = -L./lib/ -Wl,-rpath=./lib
-CFLAGS = -D__FILENAME__='"$(subst $(dir $<), ,$<)"'
+CFLAGS = 
+#-D__FILENAME__='"$(subst $(dir $<), ,$<)"'
 SHARED = -fpic -shared
 
 
