@@ -39,8 +39,4 @@ void log_core_printf(eLogLevel level, const char* format, ...);
 void log_init();
 void log_destory();
 
-/*内部接口,以后要移除，不对外暴露*/
-void log_core_init();
-void log_core_destroy();
-
 #endif
