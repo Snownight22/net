@@ -60,6 +60,8 @@ typedef struct server_handler
 
 /*客户端发送信息函数, tcpHandler:客户端句柄, buff:要发送的数据, length:发送的数据长度*/
 int tcp_client_send(void *tcpHandler, void *buff, int length);
+/*客户端设置重连时间*/
+void tcp_client_reconnectTime_set(void *handler, int time);
 /*客户端初始化函数，domain:服务器域名或地址, port:服务器端口, callback:收到服务器信息后的回调函数。返回服务器句柄*/
 void* tcp_client_init(char *domain, unsigned short port, recv_callback callback);
 /*客户端销毁函数,与tcp_client_init成对出现, handler:客户端句柄*/

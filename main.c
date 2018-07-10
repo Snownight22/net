@@ -12,6 +12,7 @@ void receive_data(const void *handler, const void *data, const int length)
 
 void server_receive_data(const void *handler, const void *data, const int length)
 {
+    ((char*)data)[length] = 0;
     printf("client say:%s\n", data);
 }
 

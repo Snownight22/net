@@ -10,11 +10,24 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #include "log.h"
 #include "tcp_session.h"
 
 int tcp_client_connect(stClientHandler *handler)
 {
+    if (handler->ssockfd >= 0)
+    {
+        close(handler->ssockfd);
+        handler->ssockfd = -1;
+    }
+
+    if (0 > (handler->ssockfd = socket(AF_INET, SOCK_STREAM, 0)))
+    {
+        LOG_ERROR("Create Socket error\n");
+        return TCP_SESSION_ERR;
+    }
+
     if (-1 == (connect(handler->ssockfd, (struct sockaddr*)(&handler->saddr), sizeof(handler->saddr))))
     {
         LOG_ERROR("Connect Server Fail!\n");
@@ -28,15 +41,55 @@ int tcp_client_connect(stClientHandler *handler)
     return TCP_SESSION_OK;
 }
 
+static void tcp_client_send_signal(int signum)
+{
+    LOG_INFO("get sigpipe signal\n");
+}
+
 int tcp_client_send(void *tcpHandler, void *buff, int length)
 {
     stClientHandler *handler = (stClientHandler *)tcpHandler;
 
+    if (NULL == handler)
+    {
+        LOG_ERROR("handler is null\n");
+        return TCP_SESSION_ERR;
+    }
+
+    if (NULL == buff || 0 == length)
+    {
+        LOG_ERROR("send Buff is NULL or length is zero\n");
+        return TCP_SESSION_ERR;
+    }
+
+    //signal(SIGPIPE, tcp_client_send_signal);
+    struct sigaction sa;
+    sa.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &sa, 0);
+
     if ((TCP_SESSION_NOT_CONNECTED == handler->isconnected) || (-1 == handler->ssockfd))
         return TCP_SESSION_ERR;
 
-    send(handler->ssockfd, buff, length, 0);
+    int ret = send(handler->ssockfd, buff, length, 0);
+    //LOG_INFO("client send over ret:%d\n", ret);
+    if (0 > ret)
+    {
+        handler->isconnected = TCP_SESSION_NOT_CONNECTED;
+        return TCP_SESSION_ERR;
+    }
+
     return TCP_SESSION_OK;
+}
+
+void tcp_client_reconnectTime_set(void *handler, int time)
+{
+    stClientHandler *tcpHandler = (stClientHandler *)handler;
+    if (NULL == tcpHandler)
+    {
+        LOG_ERROR("handler is null\n");
+        return ;
+    }
+    tcpHandler->reconnectTime = time;
 }
 
 void* tcp_client_process(void*arg)
@@ -45,16 +98,22 @@ void* tcp_client_process(void*arg)
     int ret;
     char buff[1024];
     fd_set rsets, wsets;
+    int reconnectTime;
 
     FD_ZERO(&rsets);
     FD_ZERO(&wsets);
     while (handler->isalive)
     {
-        if (TCP_SESSION_NOT_CONNECTED == handler->isconnected)
-            tcp_client_connect(handler);
+        reconnectTime = handler->reconnectTime;
         if (TCP_SESSION_NOT_CONNECTED == handler->isconnected)
         {
-            sleep(handler->reconnectTime);
+            if (reconnectTime == 0)
+                break;
+            tcp_client_connect(handler);
+        }
+        if (TCP_SESSION_NOT_CONNECTED == handler->isconnected)
+        {
+            sleep(reconnectTime);
             continue;
         }
 
@@ -105,11 +164,6 @@ void* tcp_client_init(char *domain, unsigned short port, recv_callback callback)
         return NULL;
     }
 
-    if (0 > (fd = socket(AF_INET, SOCK_STREAM, 0)))
-    {
-        LOG_ERROR("Create Socket error\n");
-        return NULL;
-    }
 
     handler = (stClientHandler *) malloc(sizeof(stClientHandler));
     if (NULL == handler)
@@ -121,7 +175,7 @@ void* tcp_client_init(char *domain, unsigned short port, recv_callback callback)
     handler->saddr.sin_addr.s_addr = *(unsigned long *)host->h_addr;
     handler->saddr.sin_port = htons(port);
     handler->saddr.sin_family = AF_INET;
-    handler->ssockfd = fd;
+    handler->ssockfd = -1;
     handler->isconnected = TCP_SESSION_NOT_CONNECTED;
     handler->callback = callback;
     handler->reconnectTime = 30;
@@ -158,6 +212,17 @@ void tcp_client_destroy(void *handler)
 int tcp_server_send(void *tcpHandler, void *buff, int length)
 {
     stClientInfo *client = (stClientInfo *)tcpHandler;
+    if (NULL == client)
+    {
+        LOG_ERROR("client is NULL\n");
+        return TCP_SESSION_ERR;
+    }
+
+    if (NULL == buff || 0 == length)
+    {
+        LOG_ERROR("send buff is null or length is 0\n");
+        return TCP_SESSION_ERR;
+    }
 
     send(client->clientfd, buff, length, 0);
 
@@ -167,6 +232,11 @@ int tcp_server_send(void *tcpHandler, void *buff, int length)
 void tcp_server_remove_client(void *serverHandler, stClientInfo *client)
 {
     stServerHandler *handler = (stServerHandler *)serverHandler;
+    if (NULL == handler || NULL == client)
+    {
+        LOG_ERROR("serverHandler is NULL or client is NULL");
+        return ;
+    }
 
     pthread_mutex_lock(&handler->mutex);
     LIST_DELETE(&handler->clientList, &(client->entry));
