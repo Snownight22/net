@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "log.h"
 #include "tcp_session.h"
 
 int g_loop = 1;
@@ -25,6 +26,7 @@ int main(int argc, char *argv[])
     int ret;
     char buff[128] = {0};
 
+    log_init("client.ini");
     handler = (stClientHandler *)tcp_client_init(domain, port, receive_data);
 
     while (g_loop)
@@ -38,12 +40,14 @@ int main(int argc, char *argv[])
     }
 
     tcp_client_destroy(handler);
+    log_destory();
 #endif
 
 #ifdef SERVER
     unsigned short lport = 6666;
     stServerHandler *serverHandler;
 
+    log_init("server.ini");
     serverHandler = (stServerHandler *)tcp_server_init(NULL/*"192.168.1.186"*/, lport, server_receive_data, NULL);
 
     while (g_loop)
@@ -52,6 +56,7 @@ int main(int argc, char *argv[])
     }
 
     tcp_server_destroy(serverHandler);
+    log_destory();
 #endif
 
     return 0;
