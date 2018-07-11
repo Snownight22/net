@@ -1,4 +1,4 @@
-#ifndef _LISt_H_ 
+#ifndef _LIST_H_ 
 #define _LIST_H_
 
 #define offset_of(TYPE, MEMBER) ((size_t)&((TYPE*)0)->MEMBER)
