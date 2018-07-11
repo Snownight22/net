@@ -36,7 +36,7 @@ void log_core_printf(eLogLevel level, const char* format, ...);
     log_core_printf(LOG_CRITICAL, "%s:%s(%d):"fmt, filename(__FILE__), __FUNCTION__, __LINE__, ##__VA_ARGS__);
 
 /*统一对外接口*/
-void log_init();
+void log_init(char *config_file);
 void log_destory();
 
 #endif

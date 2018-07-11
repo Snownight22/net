@@ -156,7 +156,7 @@ void* tcp_client_init(char *domain, unsigned short port, recv_callback callback)
     int fd;
     stClientHandler *handler;
 
-    log_init();
+    log_init(NULL);
 
     host = gethostbyname(domain);
     if (NULL == host)
@@ -333,7 +333,7 @@ void* tcp_server_init(char *saddr, unsigned short port, recv_callback callback, 
     int fd;
     struct sockaddr_in servaddr;
 
-    log_init();
+    log_init(NULL);
 
     if (0 > (fd = socket(AF_INET, SOCK_STREAM, 0)))
     {
