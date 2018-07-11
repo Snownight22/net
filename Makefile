@@ -14,13 +14,13 @@ SRC = $(foreach dir,$(SRC_DIR), $(wildcard $(dir)/*.c))
 
 BIN = net 
 
-SHAREDBIN = net.so
+SHAREDBIN = libnet.so
 
 all:$(SRC)
 	$(CC) $(SRC) $(CFLAGS) $(DEBUG) $(INC) $(LIBDIR) $(LIBS) -o $(BIN)
 
 shared:$(SRC)
-	$(CC) $(SRC) $(CFLAGS) $(INC) $(LIBS) $(SHARED) -o $(SHAREDBIN)
+	$(CC) $(SRC) $(CFLAGS) $(INC) $(LIBDIR) $(LIBS) $(SHARED) -o $(SHAREDBIN)
 
 client:$(SRC)
 	$(CC) $(SRC) $(CFLAGS) -DCLIENT $(DEBUG) $(INC) $(LIBDIR) $(LIBS) -o client
