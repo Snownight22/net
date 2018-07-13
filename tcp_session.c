@@ -92,6 +92,30 @@ void tcp_client_reconnectTime_set(void *handler, int time)
     tcpHandler->reconnectTime = time;
 }
 
+void tcp_client_timeout_set(void *tcpHandler, int time)
+{
+    stClientHandler *handler = (stClientHandler *)tcpHandler;
+    if (NULL == handler)
+    {
+        LOG_ERROR("handler is null\n");
+        return ;
+    }
+
+    handler->timeout = time;
+}
+
+void tcp_client_close_session(void *tcpHandler)
+{
+    stClientHandler *handler = (stClientHandler *)tcpHandler;
+    if (NULL == handler)
+    {
+        LOG_ERROR("handler is null\n");
+        return ;
+    }
+
+    handler->shouldClose = 1;
+}
+
 void* tcp_client_process(void*arg)
 {
     stClientHandler *handler = (stClientHandler *)arg;
@@ -99,11 +123,14 @@ void* tcp_client_process(void*arg)
     char buff[1024];
     fd_set rsets, wsets;
     int reconnectTime;
+    struct timeval waittime;
 
     FD_ZERO(&rsets);
     FD_ZERO(&wsets);
     while (handler->isalive)
     {
+        if (1 == handler->shouldClose)
+            break;
         reconnectTime = handler->reconnectTime;
         if (TCP_SESSION_NOT_CONNECTED == handler->isconnected)
         {
@@ -119,7 +146,8 @@ void* tcp_client_process(void*arg)
 
         FD_SET(handler->ssockfd, &rsets);
         //FD_SET(handler->ssockfd, &wsets);
-        select(handler->ssockfd+1, &rsets, NULL/*&wsets*/, NULL, NULL);
+        waittime.tv_sec = handler->timeout;
+        select(handler->ssockfd+1, &rsets, NULL/*&wsets*/, NULL, &waittime);
         if (FD_ISSET(handler->ssockfd, &rsets))
         {
             ret = recv(handler->ssockfd, buff, 1024, 0);
@@ -136,16 +164,14 @@ void* tcp_client_process(void*arg)
                     handler->callback(handler, buff, ret);
             }
         }
+    }
 
-        /*
-        if (FD_ISSET(handler->ssockfd, &wsets))
-        {
-            char *sendbuff = "hello,world";
-            send(handler->ssockfd, sendbuff, strlen(sendbuff), 0);
-            LOG_INFO("send buff\n");
-            sleep(20);
-        }
-        */
+    LOG_INFO("close client session\n");
+    if (-1 != handler->ssockfd)
+    {
+        close(handler->ssockfd);
+        handler->ssockfd = -1;
+        handler->isconnected = TCP_SESSION_NOT_CONNECTED;
     }
 
 }
@@ -180,6 +206,8 @@ void* tcp_client_init(char *domain, unsigned short port, recv_callback callback)
     handler->isconnected = TCP_SESSION_NOT_CONNECTED;
     handler->callback = callback;
     handler->reconnectTime = 30;
+    handler->shouldClose = 0;
+    handler->timeout = 1;
 
     tcp_client_connect(handler);
 

@@ -30,6 +30,8 @@ typedef struct client_handler
     pthread_t thread;
     int isalive;
     int reconnectTime;    //重连时间
+    int shouldClose;    //是否主动关闭连接,0-不关连接，1-关连接
+    int timeout;    //超时时间(秒)
     recv_callback callback;    //收到服务器信息后的回调函数
 }stClientHandler;
 
@@ -62,6 +64,10 @@ typedef struct server_handler
 int tcp_client_send(void *tcpHandler, void *buff, int length);
 /*客户端设置重连时间*/
 void tcp_client_reconnectTime_set(void *handler, int time);
+/*设置超时时间*/
+void tcp_client_timeout_set(void *tcpHandler, int time);
+/*客户端关闭连接*/
+void tcp_client_close_session(void *tcpHandler);
 /*客户端初始化函数，domain:服务器域名或地址, port:服务器端口, callback:收到服务器信息后的回调函数。返回服务器句柄*/
 void* tcp_client_init(char *domain, unsigned short port, recv_callback callback);
 /*客户端销毁函数,与tcp_client_init成对出现, handler:客户端句柄*/
