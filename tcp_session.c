@@ -417,6 +417,13 @@ void tcp_server_destroy(void *handler)
 
     if (NULL != sHandler)
     {
+        stListEntry *entry, *next;
+        LIST_FOREACH_NEXT(&(sHandler->clientList), entry, next)
+        {
+            stClientInfo *client = container_of(entry, stClientInfo, entry);
+            tcp_server_remove_client(handler, client);
+        }
+
         if (-1 != sHandler->listenfd)
             close(sHandler->listenfd);
 

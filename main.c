@@ -81,6 +81,7 @@ int main(int argc, char *argv[])
 
     while (g_loop)
     {
+        /*
         printf(">>");
         fgets(buff, 127, stdin);
         stListEntry *entry;
@@ -89,8 +90,10 @@ int main(int argc, char *argv[])
             stClients *client = container_of(entry, stClients, entry);
             tcp_server_send(client->handler, buff, strlen(buff));
         }
+        */
 
-        //sleep(1);
+        sleep(10);
+        break;
     }
 
     tcp_server_destroy(serverHandler);
