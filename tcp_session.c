@@ -38,6 +38,27 @@ int tcp_client_connect(stClientHandler *handler)
     LOG_INFO("Connected to server %s\n", inet_ntoa(handler->saddr.sin_addr));
     handler->isconnected = TCP_SESSION_CONNECTED;
 
+    int addrlen = sizeof(struct sockaddr);
+    int ret;
+    ret = getsockname(handler->ssockfd, (struct sockaddr*)(&handler->laddr), (socklen_t *)(&addrlen));
+    if (0 != ret)
+        LOG_ERROR("Get Sock Name error, ret:%d, errno:%d\n", ret, errno);
+
+    return TCP_SESSION_OK;
+}
+
+int tcp_client_addr_get(void *clientHandler, long *lip, unsigned short *lport)
+{
+    stClientHandler *handler = (stClientHandler *)clientHandler;
+    if (TCP_SESSION_NOT_CONNECTED == handler->isconnected)
+    {
+        LOG_ERROR("tcp client is not connected\n");
+        return TCP_SESSION_ERR;
+    }
+
+    *lip = ntohl(handler->laddr.sin_addr.s_addr);
+    *lport = ntohs(handler->laddr.sin_port);
+
     return TCP_SESSION_OK;
 }
 
@@ -150,6 +171,7 @@ void* tcp_client_process(void*arg)
         select(handler->ssockfd+1, &rsets, NULL/*&wsets*/, NULL, &waittime);
         if (FD_ISSET(handler->ssockfd, &rsets))
         {
+            //LOG_INFO("client begin receive\n");
             ret = recv(handler->ssockfd, buff, 1024, 0);
             if (0 == ret)
             {
@@ -182,7 +204,7 @@ void* tcp_client_init(char *domain, unsigned short port, recv_callback callback)
     int fd;
     stClientHandler *handler;
 
-    log_init(NULL);
+    //log_init(NULL);
 
     host = gethostbyname(domain);
     if (NULL == host)
@@ -235,7 +257,7 @@ void tcp_client_destroy(void *handler)
         free(tcphandler);
     }
 
-    log_destory();
+    //log_destory();
 }
 
 int tcp_server_send(void *tcpHandler, void *buff, int length)
@@ -299,27 +321,30 @@ void* tcp_server_listen_thread(void *serverHandler)
         {
             clilen = sizeof(cliaddr);
             connfd = accept(handler->listenfd, (struct sockaddr *)&cliaddr, &clilen);
-            stClientInfo *client = (stClientInfo *) malloc(sizeof(stClientInfo));
-            if (NULL == client)
+            if (0 <= connfd)
             {
-                LOG_ERROR("accept client malloc error\n");
-                continue;
-            }
-            strcpy(client->clientip, inet_ntoa((struct in_addr)cliaddr.sin_addr));    //inet_ntop(AF_INET, &cliaddr.sin_addr, 4, NULL));
-            client->clientport = ntohs(cliaddr.sin_port);
-            client->clientfd = connfd;
-            LOG_INFO("accept client:%s:%d, fd:%d\n", client->clientip, client->clientport, connfd);
-            if (handler->a_callback)
-                handler->a_callback(client);
+                stClientInfo *client = (stClientInfo *) malloc(sizeof(stClientInfo));
+                if (NULL == client)
+                {
+                    LOG_ERROR("accept client malloc error\n");
+                    continue;
+                }
+                strcpy(client->clientip, inet_ntoa((struct in_addr)cliaddr.sin_addr));    //inet_ntop(AF_INET, &cliaddr.sin_addr, 4, NULL));
+                client->clientport = ntohs(cliaddr.sin_port);
+                client->clientfd = connfd;
+                LOG_INFO("accept client:%s:%d, fd:%d\n", client->clientip, client->clientport, connfd);
+                if (handler->a_callback)
+                    handler->a_callback(client);
 
-            pthread_mutex_lock(&handler->mutex);
-            LIST_INSERT_TAIL(&(handler->clientList), &(client->entry));
-            handler->clientcount++;
-            pthread_mutex_unlock(&handler->mutex);
+                pthread_mutex_lock(&handler->mutex);
+                LIST_INSERT_TAIL(&(handler->clientList), &(client->entry));
+                handler->clientcount++;
+                pthread_mutex_unlock(&handler->mutex);
             
-            FD_SET(connfd, &allset);
-            if (connfd > maxfd)
-                maxfd = connfd;
+                FD_SET(connfd, &allset);
+                if (connfd > maxfd)
+                    maxfd = connfd;
+            }
 
             if (--ready <= 0)
                 continue;
@@ -350,9 +375,16 @@ void* tcp_server_listen_thread(void *serverHandler)
             }
         }
     }
+}
 
+int tcp_server_addr_get(void *serverHandler, long *lip, unsigned short *lport)
+{
+    stServerHandler *handler = (stServerHandler *)serverHandler;
 
+    *lip = ntohl(handler->laddr.sin_addr.s_addr);
+    *lport = ntohs(handler->laddr.sin_port);
 
+    return TCP_SESSION_OK;
 }
 
 void* tcp_server_init(char *saddr, unsigned short port, recv_callback callback, accept_callback aCallBack)
@@ -360,8 +392,9 @@ void* tcp_server_init(char *saddr, unsigned short port, recv_callback callback, 
     stServerHandler *handler;
     int fd;
     struct sockaddr_in servaddr;
+    int addrlen;
 
-    log_init(NULL);
+    //log_init(NULL);
 
     if (0 > (fd = socket(AF_INET, SOCK_STREAM, 0)))
     {
@@ -379,14 +412,21 @@ void* tcp_server_init(char *saddr, unsigned short port, recv_callback callback, 
     if (0 > (bind(fd, (struct sockaddr *)&servaddr, sizeof(servaddr))))
     {
         LOG_ERROR("Bind Error, errno:%d\n", errno);
+        close(fd);
         return NULL;
     }
 
     if ( 0 > listen(fd, LISTEN_BACKLOG))
     {
         LOG_ERROR("Listen Error, errno:%d\n", errno);
+        close(fd);
         return NULL;
     }
+
+    addrlen = sizeof(struct sockaddr);
+    int ret = getsockname(fd, (struct sockaddr *)(&servaddr), (socklen_t *)(&addrlen));
+    if (0 != ret)
+        LOG_ERROR("server Get Sock Name error, ret:%d, errno:%d\n", ret, errno);
 
     handler = (stServerHandler *)malloc(sizeof(stServerHandler));
     if (NULL == handler)
@@ -404,8 +444,10 @@ void* tcp_server_init(char *saddr, unsigned short port, recv_callback callback, 
     handler->isalive = 1;
     handler->callback = callback;
     handler->a_callback = aCallBack;
+    memcpy(&handler->laddr, &servaddr, sizeof(struct sockaddr_in));
 
     pthread_create(&handler->listenThread, NULL, tcp_server_listen_thread, handler);
+
     LOG_INFO("Server Start!\n");
 
     return handler;
@@ -430,5 +472,5 @@ void tcp_server_destroy(void *handler)
         free(sHandler);
     }
 
-    log_destory();
+    //log_destory();
 }

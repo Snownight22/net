@@ -33,6 +33,7 @@ typedef struct client_handler
     int shouldClose;    //是否主动关闭连接,0-不关连接，1-关连接
     int timeout;    //超时时间(秒)
     recv_callback callback;    //收到服务器信息后的回调函数
+    struct sockaddr_in laddr;    //连接后本地地址信息
 }stClientHandler;
 
 /*记录连接上服务器的客户端信息*/
@@ -60,6 +61,8 @@ typedef struct server_handler
     accept_callback a_callback;    //接收到客户端连接后的回调函数
 }stServerHandler;
 
+/*获取客户端连接后的地址信息*/
+int tcp_client_addr_get(void *clientHandler, long *lip, unsigned short *lport);
 /*客户端发送信息函数, tcpHandler:客户端句柄, buff:要发送的数据, length:发送的数据长度*/
 int tcp_client_send(void *tcpHandler, void *buff, int length);
 /*客户端设置重连时间*/
@@ -73,6 +76,8 @@ void* tcp_client_init(char *domain, unsigned short port, recv_callback callback)
 /*客户端销毁函数,与tcp_client_init成对出现, handler:客户端句柄*/
 void tcp_client_destroy(void *handler);
 
+/*获取服务器实际监听的地址信息*/
+int tcp_server_addr_get(void *serverHandler, long *lip, unsigned short *lport);
 /*服务器发送信息函数，tcpHandler:stClientInfo　要发送给的客户端信息, buff:要发送的数据, length:发送的数据长度*/
 int tcp_server_send(void *tcpHandler, void *buff, int length);
 /*服务器移除客户端函数，serverHandler:服务器句柄, client:客户端信息*/

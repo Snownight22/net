@@ -52,18 +52,18 @@ int main(int argc, char *argv[])
 
     while (g_loop)
     {
-        /*
         fputs("client say: ", stdout);
         fgets(buff, 127, stdin);
         tcp_client_send(handler, buff, strlen(buff));
         if (0 == ret)
             printf("send %s\n", buff);
-        */
+        /*
         tcp_client_timeout_set(handler, 10);
         sleep(10);
         LOG_INFO("now close session\n");
         tcp_client_close_session(handler);
         break;
+        */
     }
 
     tcp_client_destroy(handler);
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef SERVER
-    unsigned short lport = 6666;
+    unsigned short lport = 0;//6666;
     stServerHandler *serverHandler;
     char buff[128] = {0};
 
@@ -81,7 +81,6 @@ int main(int argc, char *argv[])
 
     while (g_loop)
     {
-        /*
         printf(">>");
         fgets(buff, 127, stdin);
         stListEntry *entry;
@@ -90,10 +89,11 @@ int main(int argc, char *argv[])
             stClients *client = container_of(entry, stClients, entry);
             tcp_server_send(client->handler, buff, strlen(buff));
         }
-        */
 
+        /*
         sleep(10);
         break;
+        */
     }
 
     tcp_server_destroy(serverHandler);
