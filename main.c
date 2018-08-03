@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     char buff[128] = {0};
 
     log_init("client.ini");
-    handler = (stClientHandler *)tcp_client_init(domain, port, receive_data);
+    handler = (stClientHandler *)tcp_client_init(domain, port, receive_data, NULL);
 
     while (g_loop)
     {

@@ -19,6 +19,7 @@
 
 typedef void (*recv_callback)(const void *handler, const void *data, const int length);
 typedef void (*accept_callback)(const void *clientInfo);
+typedef void (*close_callback)(const void *handler);
 
 /*客户端句柄，记录客户端连接信息*/
 typedef struct client_handler
@@ -33,6 +34,7 @@ typedef struct client_handler
     int shouldClose;    //是否主动关闭连接,0-不关连接，1-关连接
     int timeout;    //超时时间(秒)
     recv_callback callback;    //收到服务器信息后的回调函数
+    close_callback callback2;    //收到服务器关闭连接后的回调
     struct sockaddr_in laddr;    //连接后本地地址信息
 }stClientHandler;
 
@@ -72,7 +74,7 @@ void tcp_client_timeout_set(void *tcpHandler, int time);
 /*客户端关闭连接*/
 void tcp_client_close_session(void *tcpHandler);
 /*客户端初始化函数，domain:服务器域名或地址, port:服务器端口, callback:收到服务器信息后的回调函数。返回服务器句柄*/
-void* tcp_client_init(char *domain, unsigned short port, recv_callback callback);
+void* tcp_client_init(char *domain, unsigned short port, recv_callback callback, close_callback callback2);
 /*客户端销毁函数,与tcp_client_init成对出现, handler:客户端句柄*/
 void tcp_client_destroy(void *handler);
 

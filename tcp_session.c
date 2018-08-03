@@ -177,6 +177,8 @@ void* tcp_client_process(void*arg)
             {
                 LOG_INFO("receive 0, server is gone\n");
                 handler->isconnected = TCP_SESSION_NOT_CONNECTED;
+                if (handler->callback2)
+                    handler->callback2(handler);
                 continue;
             }
             else if (0 < ret)
@@ -198,7 +200,7 @@ void* tcp_client_process(void*arg)
 
 }
 
-void* tcp_client_init(char *domain, unsigned short port, recv_callback callback)
+void* tcp_client_init(char *domain, unsigned short port, recv_callback callback, close_callback callback2)
 {
     struct hostent *host;
     int fd;
@@ -227,6 +229,7 @@ void* tcp_client_init(char *domain, unsigned short port, recv_callback callback)
     handler->ssockfd = -1;
     handler->isconnected = TCP_SESSION_NOT_CONNECTED;
     handler->callback = callback;
+    handler->callback2 = callback2;
     handler->reconnectTime = 30;
     handler->shouldClose = 0;
     handler->timeout = 1;
